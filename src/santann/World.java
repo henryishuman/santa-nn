@@ -25,13 +25,14 @@ public class World {
 	private int height;
 	
 	private final int elfCount = 40;
+	private final int homeCount = 5;
 	
 	private ArrayList<Entity> entities;
 	private ArrayList<Entity> entityQueue;
 	private ArrayList<Entity> entityRemovalQueue;
 	
 	private int generation;
-	public static final long refreshTime = 500;
+	public static final long refreshTime = 1000;
 	private long currentTick = 0;
 	
 	private String worldSaveDir;
@@ -81,17 +82,11 @@ public class World {
 	}
 	
 	private void addOtherEntities() {	
-		int px = width/2;
-		int py = height/2;
-		
-		int minw = width/6;
-		int minh = width/6;
-		
-		this.entities.add(new Home(px, px-minh));
-		this.entities.add(new Home(px+minw, py-minh/3));
-		this.entities.add(new Home(px+minw/2, py+minh));
-		this.entities.add(new Home(px-minw/2, py+minh));
-		this.entities.add(new Home(px-minw, py-minh/3));
+		for (int h = 0; h < homeCount; h++) {
+			int xpos = RandUtil.getInt(0 + width/5,  width - width/5);
+			int ypos = RandUtil.getInt(0 + height/5, height - height/5);
+			this.entities.add(new Home(xpos, ypos));
+		}
 		
 		for (int e = 0; e < elfCount; e++) {
 			int xpos = RandUtil.getInt(0, width);
@@ -149,9 +144,11 @@ public class World {
 		}
 		
 		for (Elf e : fitElves) {
-			int elfX = RandUtil.getInt(0, width);
-			int elfY = RandUtil.getInt(0, height);
-			e.setPosition(elfX, elfY);
+			if (!e.isOnBoard(this)) {
+				int elfX = RandUtil.getInt(0, width);
+				int elfY = RandUtil.getInt(0, height);
+				e.setPosition(elfX, elfY);
+			}
 			e.resetFitnessStats();
 		}
 		
@@ -201,12 +198,21 @@ public class World {
 		
 		for (Entity e : entities) {
 			e.draw(g);
+			if (e.getType() == EntityType.ELF)
+				drawElfName(g, (Elf)e);
 		}
 
 		g.translate(-x, -y);
 		
 		drawFittestGenomeImage(g, 10, 10, 260, 260);
 		drawDebug(g, 10, 290);
+	}
+	
+	private void drawElfName(Graphics g, Elf e) {
+		g.setColor(Color.BLACK);
+		g.setFont(new Font("Consolas", 1, 12));
+		int textWidth = g.getFontMetrics().stringWidth(e.getName());
+		g.drawString(e.getName(), (int)(e.getX() - textWidth/2), (int)(e.getY() - e.getSize()/1.5));
 	}
 	
 	private void drawFittestGenomeImage(Graphics g, int x, int y, int width, int height) {	

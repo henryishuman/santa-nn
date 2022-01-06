@@ -37,11 +37,11 @@ public class FitnessCalculator {
 	private static double getIndividualFitness(Elf elf) {
 		double maxTime = (double) World.refreshTime;
 		
-		//double onboardBonus = elf.getIsOnBoard() ? 5 : 0;
+		double onboardBonus = elf.getIsOnBoard() ? 5 : 0;
 		double deliveryBonus = elf.getDeliveries() * 10;
-		//double stepBonus = elf.getStepsTaken() / maxTime;
-		//double presentBonus = elf.getTimeSpentHoldingPresent() / maxTime;
-		return deliveryBonus;// + onboardBonus + stepBonus + presentBonus;
+		double stepBonus = elf.getStepsTaken() / maxTime;
+		double presentBonus = elf.getTimeSpentHoldingPresent() / maxTime;
+		return deliveryBonus + onboardBonus + stepBonus + presentBonus;
 	}
 	
 	@SuppressWarnings( "unchecked" )
@@ -62,7 +62,7 @@ public class FitnessCalculator {
 				Elf other = remainingElves.get(i);
 				Genome otherG = other.getGenome();
 				double compatDistance = getCompatabilityDistance(repG, otherG);
-				if (compatDistance <= 0.25) {
+				if (compatDistance <= 0.5) {
 					s.addMember(other);
 					other.setSpecies(s);
 					remainingElves.remove(other);
