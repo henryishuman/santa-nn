@@ -28,6 +28,7 @@ hs_err_pid*
 .settings/*
 
 # Project generated files
+santa-nn_*
 timelapses/*
 parent1.png
 parent2.png
