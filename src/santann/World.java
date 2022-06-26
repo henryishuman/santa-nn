@@ -32,7 +32,7 @@ public class World {
 	private ArrayList<Entity> entityRemovalQueue;
 	
 	private int generation;
-	public static final long refreshTime = 1000;
+	public static final long refreshTime = 5000;
 	private long currentTick = 0;
 	
 	private String worldSaveDir;

@@ -22,6 +22,8 @@ public class MainWindow extends JPanel implements Runnable, KeyListener {
 	
 	private Thread thread;
 	private boolean running;
+	private boolean paused;
+	private boolean fastMode;
 	private static final int FPS = 60;
 	
 	private BufferedImage image;
@@ -49,6 +51,8 @@ public class MainWindow extends JPanel implements Runnable, KeyListener {
 		image = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_ARGB);
 		g = (Graphics2D) image.getGraphics();
 		running = true;
+		paused = false;
+		fastMode = false;
 		
 		int worldWidth = HEIGHT;
 		int worldHeight = HEIGHT;
@@ -67,19 +71,25 @@ public class MainWindow extends JPanel implements Runnable, KeyListener {
 		while(running) {
 			start = System.nanoTime();
 			
-			update();
-			draw();
-			drawToScreen();
-			
-			elapsed  = System.nanoTime() - start;
-			wait = (1000 / FPS) - elapsed / 1000000;
-			if(wait < 0) wait = 5;
-			
-			try {
-				Thread.sleep(wait);
+			if (!paused) {
+				update();
+				if (!fastMode) {
+					draw();
+					drawToScreen();
+				}
 			}
-			catch(Exception e) {
-				e.printStackTrace();
+			
+			if (!fastMode) {
+				elapsed  = System.nanoTime() - start;
+				wait = (1000 / FPS) - elapsed / 1000000;
+				if(wait < 0) wait = 5;
+				
+				try {
+					Thread.sleep(wait);
+				}
+				catch(Exception e) {
+					e.printStackTrace();
+				}
 			}
 		}
 	}
@@ -116,6 +126,14 @@ public class MainWindow extends JPanel implements Runnable, KeyListener {
 				(HEIGHT - worldHeight)/2,
 				worldWidth,
 				worldHeight);
+		}
+		if (k == KeyEvent.VK_SPACE) {
+			paused = true;
+			w.reinitialiseWorld();
+			paused = false;
+		}
+		if (k == KeyEvent.VK_SHIFT) {
+			fastMode = !fastMode;
 		}
 	}
 	
