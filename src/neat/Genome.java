@@ -84,13 +84,6 @@ public class Genome {
 	}
 
 	public void mutate() {
-		for (NodeGene ng : getNodesByType(NodeGeneType.HIDDEN)) {
-			ng.setDepth(-1);
-		}	
-		for (NodeGene ng : getNodesByType(NodeGeneType.INPUT)) {
-			recalculateDepth(ng, new ArrayList<Integer>());
-		}
-		
 		if (randChance(0.2)) {
 			addNewNode();
 		}
@@ -107,9 +100,7 @@ public class Genome {
 			toggleConnection();
 		}
 		
-		for (NodeGene ng : getNodesByType(NodeGeneType.INPUT)) {
-			recalculateDepth(ng, new ArrayList<Integer>());
-		}
+		recalculateDepth();
 	}
 	
 	private boolean randChance(double chance) {
@@ -128,34 +119,32 @@ public class Genome {
 			
 			nodeGenes.add(newNode);
 			connectionGenes.add(c1);
-			connectionGenes.add(c2);
-			
-			recalculateDepth(newNode, new ArrayList<Integer>());
+			connectionGenes.add(c2);			
 		}
 	}
 	
-	private void recalculateDepth(NodeGene ng, ArrayList<Integer> visitedNodeIds) {
-		if (!visitedNodeIds.contains(ng.getId())) {
-			visitedNodeIds.add(ng.getId());
-			
-			if (ng.getType() == NodeGeneType.HIDDEN) {
-				ArrayList<NodeGene> subNodes = getNodesLeadingTo(ng);
-				int largestDepth = 0;
-				for (NodeGene subNode : subNodes) {
-					if (subNode.getDepth() > largestDepth) {
-						largestDepth = subNode.getDepth();
-					}
-				}
+	private void recalculateDepth() {
+		ArrayList<NodeGene> hiddenNodes = getNodesByTypes(NodeGeneType.HIDDEN);
+		for (NodeGene g : hiddenNodes) {
+			g.setDepth(-1);
+		}
+		
+		for (NodeGene g : hiddenNodes) {
+			calculateNodeDepth(g);
+		}
+	}
+	
+	private void calculateNodeDepth(NodeGene node) {
+		if (node.getDepth() == -1) {
+			ArrayList<NodeGene> subNodes = getNodesLeadingTo(node);
+			for (NodeGene subNode : subNodes) {
+				calculateNodeDepth(subNode);
+
+				if (subNode.getDepth()+1 > node.getDepth())
+					node.setDepth(subNode.getDepth()+1);
 				
-				ng.setDepth(largestDepth + 1);
 			}
 			
-			for (ConnectionGene cg : getConnectionsFromNode(ng)) {
-				if (cg.getEnabled()) {
-					NodeGene toNode = getNodeWithId(cg.getOutId());
-					recalculateDepth(toNode, visitedNodeIds);
-				} 
-			}
 		}
 	}
 	
@@ -175,7 +164,7 @@ public class Genome {
 		int iInput = RandUtil.getInt(0, inputs.size() - 1);
 		NodeGene rInput = inputs.get(iInput);
 		
-		ArrayList<NodeGene> outputs = getNodesWithDepthGreaterThan(rInput.getDepth());
+		ArrayList<NodeGene> outputs = getNodesByTypes(NodeGeneType.HIDDEN, NodeGeneType.OUTPUT);
 		outputs.remove(rInput);
 		
 		int iOutput = RandUtil.getInt(0, outputs.size() - 1);
@@ -184,7 +173,6 @@ public class Genome {
 		ConnectionGene c = new ConnectionGene(rInput.getId(), rOutput.getId(), RandUtil.getDouble(-1, 1));		
 		if (!connectionGenes.contains(c)) {
 			connectionGenes.add(c);
-			recalculateDepth(rInput, new ArrayList<Integer>());
 		} 
 		
 	}
@@ -208,8 +196,6 @@ public class Genome {
 		if (connectionGenes.size() > 0) {
 			ConnectionGene gene = connectionGenes.get(RandUtil.getInt(0, connectionGenes.size()-1));
 			gene.toggle();
-			NodeGene node = getNodeWithId(gene.getOutId());
-			recalculateDepth(node, new ArrayList<Integer>());
 		}
 	}
 	

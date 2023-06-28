@@ -5,7 +5,6 @@ import java.util.Collections;
 
 import graphics.Spritesheet;
 import neat.Genome;
-import neat.Species;
 import util.NameGenerator;
 
 public class Elf extends Entity {
@@ -20,11 +19,8 @@ public class Elf extends Entity {
 	private int homeContact;
 	
 	private boolean isOnBoard;
-	
-	public double fitness;
-	
+		
 	private String name;
-	private Species species;
 	
 	private int speed;
 		
@@ -71,8 +67,6 @@ public class Elf extends Entity {
 	public int getPresentPickups() { return presentPickups; }
 	public int getTimeSpentHoldingPresent() { return timeSpentHoldingPresent; }
 	public String getName() { return name; }
-	public Species getSpecies() { return species; }
-	public void setSpecies(Species s) { this.species = s; }
 	
 	public void resetFitnessStats() {
 		deliveries = 0;
@@ -81,9 +75,7 @@ public class Elf extends Entity {
 		homeContact = 0;
 		isOnBoard = true;
 		presentPickups = 0;
-		timeSpentHoldingPresent = 0;
-				
-		fitness = 0;
+		timeSpentHoldingPresent = 0;	
 	}
 
 	@Override

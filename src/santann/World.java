@@ -9,14 +9,11 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Date;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import graphics.RepeatingPattern;
 import neat.Genome;
 import neat.GenomeRenderer;
 import neat.InnovationTable;
-import neat.Species;
 import util.RandUtil;
 
 public class World {
@@ -32,8 +29,10 @@ public class World {
 	private ArrayList<Entity> entityRemovalQueue;
 	
 	private int generation;
-	public static final long refreshTime = 5000;
+	public static final long refreshTime = 1000;
 	private long currentTick = 0;
+	
+	public static final long presentSpawnTime = 25;
 	
 	private String worldSaveDir;
 	
@@ -114,32 +113,43 @@ public class World {
 		this.entityRemovalQueue.clear();
 	}
 	
+	@SuppressWarnings("unchecked")
 	public void reinitialiseWorld() {
 		generation += 1;
 		ArrayList<Elf> elves = getElves();
-		ArrayList<Elf> fitElves = FitnessCalculator.cullUnfitElves(elves, 0.5);
-		fittestElfGenomeImg = GenomeRenderer.renderGenome(fitElves.get(fitElves.size() - 1).getGenome(), worldSaveDir + "/gen_" + generation + ".png");
-		ArrayList<Elf> offspring = new ArrayList<Elf>();
-		while (offspring.size() + fitElves.size() < elfCount) {
-			Elf p1 = fitElves.get(RandUtil.getInt(0, fitElves.size() - 1));
-			ArrayList<Object> speciesMembers = p1.getSpecies().getMembers();
-			Elf p2 = (Elf) speciesMembers.get(RandUtil.getInt(0, speciesMembers.size() - 1));
-			if (p1 != null && p2 != null) {
-				Genome g = null;
-				if (p1.fitness > p2.fitness) {
-					g = p1.getGenome().crossover(p2.getGenome(), false);
-				} else if (p1.fitness < p2.fitness) {
-					g = p2.getGenome().crossover(p1.getGenome(), false);
-				} else {
-					g = p1.getGenome().crossover(p2.getGenome(), true);
-				}
+		ArrayList<Elf> fitElves = FitnessCalculator.cullUnfitElves(elves, 0.7);
+		if (fitElves.size() > 0)
+			fittestElfGenomeImg = GenomeRenderer.renderGenome(fitElves.get(fitElves.size() - 1).getGenome(), worldSaveDir + "/gen_" + generation + ".png");
+		
+		ArrayList<Elf> nextGen = new ArrayList<Elf>();
+		while (nextGen.size() < elfCount) {
+			if (fitElves.size() <= 1) {
+				int x = RandUtil.getInt(0, width);
+				int y = RandUtil.getInt(0, height);
+				nextGen.add(new Elf(x, y));
+			} else {
+				ArrayList<Elf> breedingPool = (ArrayList<Elf>) fitElves.clone();
+				Elf p1 = breedingPool.get(RandUtil.getInt(0,  breedingPool.size() - 1));
+				breedingPool.remove(p1);
+				Elf p2 = breedingPool.get(RandUtil.getInt(0,  breedingPool.size() - 1));
 				
-				int elfX = RandUtil.getInt(0, width);
-				int elfY = RandUtil.getInt(0, height);
-				Elf baby = new Elf(elfX, elfY, g);
-				baby.setSpecies(p1.getSpecies());
-				p1.getSpecies().addMember(baby);
-				offspring.add(baby);
+				if (p1 != null && p2 != null) {
+					Genome g = null;
+					double p1Fitness = FitnessCalculator.getElfFitness(p1);
+					double p2Fitness = FitnessCalculator.getElfFitness(p2);
+					if (p1Fitness > p2Fitness) {
+						g = p1.getGenome().crossover(p2.getGenome(), false);
+					} else if (p1Fitness < p2Fitness) {
+						g = p2.getGenome().crossover(p1.getGenome(), false);
+					} else {
+						g = p1.getGenome().crossover(p2.getGenome(), true);
+					}
+					
+					int elfX = RandUtil.getInt(0, width);
+					int elfY = RandUtil.getInt(0, height);
+					Elf baby = new Elf(elfX, elfY, g);
+					nextGen.add(baby);
+				}
 			}
 		}
 		
@@ -155,8 +165,7 @@ public class World {
 		this.entities = new ArrayList<Entity>();
 		this.entityQueue = new ArrayList<Entity>();
 		this.entityRemovalQueue = new ArrayList<Entity>();
-		this.entities.addAll(fitElves);
-		this.entities.addAll(offspring);
+		this.entities.addAll(nextGen);
 		
 		addOtherEntities();
 	}
@@ -180,11 +189,20 @@ public class World {
 		}
 		
 		unqueueEntities();
+		replenishPresents();
 		
 		if (currentTick > refreshTime) {
 			reinitialiseWorld();
 		}
 		currentTick++;
+	}
+	
+	private void replenishPresents() {
+		if (currentTick % presentSpawnTime == 0) {
+			int x = RandUtil.getInt(0, width);
+			int y = RandUtil.getInt(0, height);
+			this.entities.add(new Present(x, y));
+		}
 	}
 	
 	public void draw(Graphics g) {
@@ -233,13 +251,6 @@ public class World {
 		g.setFont(new Font("Courier", 1, 20));
 		g.drawString("Current gen: " + generation, x, y);
 		g.drawString("Gen completion: " + ((currentTick*100)/refreshTime) + "%", x, y + 20);
-		
-		if (FitnessCalculator.currentSpecies != null) {
-			List<Species> speciesWithMembers = FitnessCalculator.currentSpecies.stream().filter(spec -> spec.numMembers() > 0).collect(Collectors.toList());
-			g.drawString("Num species: " + speciesWithMembers.size(), x, y + 40);	
-		} else {
-			g.drawString("Num species: n/a", x, y + 40);
-		}
 		
 		g.drawString("Presents left: " + (elfCount - numDeliveries), x, y + 80);
 		g.drawString("Pickups: " + numPickups, x, y + 100);
